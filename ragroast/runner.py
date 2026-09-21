@@ -98,10 +98,15 @@ def run_showdown(
     k1: float = 1.5,
     b: float = 0.75,
     progress: bool = True,
+    roast_level: int = 1,
 ) -> "OrderedDict[str, Result]":
     results: "OrderedDict[str, Result]" = OrderedDict()
 
-    _progress(f"  indexing BM25 ({len(docs)} docs) …\n")
+    _progress(
+        f"  warming up the 30-year-old baseline — BM25 over {len(docs)} docs …\n"
+        if roast_level >= 1
+        else f"  indexing BM25 ({len(docs)} docs) …\n"
+    )
     bm25 = BM25Retriever(k1=k1, b=b).index(docs)
     results["BM25 (baseline)"] = _evaluate("BM25 (baseline)", bm25, queries, qrels, k, progress)
 
@@ -113,7 +118,11 @@ def run_showdown(
             label="Dense (MiniLM)",
         ).index(docs)
     elif embedder is not None:
-        _progress(f"  embedding {len(docs)} docs with the dense model …\n")
+        _progress(
+            f"  teaching the neural net to read {len(docs)} docs …\n"
+            if roast_level >= 1
+            else f"  embedding {len(docs)} docs with the dense model …\n"
+        )
         dense = DenseRetriever(embedder=embedder, label="Dense (MiniLM)").index(docs)
         # Pre-embed all judged queries once, in a single batch. Otherwise each
         # query re-embeds on the fly during search — and again inside the hybrid

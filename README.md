@@ -17,11 +17,12 @@ ragroast · retrieval showdown on 'scifact'  (5183 docs · 300 queries · k=10)
   ──────────────────────────────────────────────────────────────
   VERDICT  BM25 beats your dense retriever by +2.9% nDCG@10.  🔥
            Hybrid (RRF) wins overall (+3.2% over BM25).
+  🔥 Photo finish — and the 30-year-old baseline still edged it.
 
   method: Okapi BM25 (k1=1.5, b=0.75) · dense: all-MiniLM-L6-v2 · fusion: RRF (k=60) · metrics computed from scratch
 ```
 
-<sub>*(real run on the BEIR **scifact** test split — 5183 docs, 300 queries. Reproduce with `ragroast run` on its corpus/queries/qrels.)*</sub>
+<sub>*(real run on the BEIR **scifact** test split — 5183 docs, 300 queries. Reproduce with `ragroast run` on its corpus/queries/qrels. Yes, it roasts you — pass `--plain` for sober output.)*</sub>
 
 ## Why
 
@@ -53,6 +54,17 @@ python -m ragroast demo
 ```
 
 Once published: `pip install ragroast` → `ragroast demo`.
+
+## What you'll need
+
+ragroast scores rankings against **relevance labels** (`qrels`) — no labels, nothing to
+measure. Pick the path that matches what you have:
+
+- **Just curious / no data of your own** → `ragroast demo` (or `python -m ragroast run ragroast/_sample`). Zero setup.
+- **A labeled set** (corpus + queries + qrels, BEIR-style) → `ragroast run` (below).
+- **An existing retrieval pipeline** → `ragroast score --run …`; score its output directly.
+- **Documents but no labels** → the hard case. Auto-labeling (LLM-as-judge) is on the roadmap;
+  until then, hand-labeling even a few dozen queries already gives a real signal.
 
 ## Run it on your own data
 
@@ -126,6 +138,16 @@ A benchmark that rigs the baseline is worse than no benchmark. So:
   (`scifact`, `nfcorpus`, `fiqa`, …) or your own labeled data for real numbers.
 - Metrics need relevance judgements (qrels). No labels, no scores — that's a
   feature, not a bug.
+
+## Troubleshooting
+
+- **`run` on a real corpus pauses before results** — it's embedding every document once.
+  Progress prints per stage (`scoring …%  ~ETA left`); bigger corpora just take longer.
+- **First dense run downloads MiniLM (~90 MB).** Offline or behind a strict proxy? Pre-cache
+  the model once, then run with `HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1` to skip network checks.
+- **`Dense retrieval needs the optional dependency`** → `pip install 'ragroast[dense]'`.
+- **No qrels?** Nothing to score — see [What you'll need](#what-youll-need).
+- **Machine-readable output?** `--plain` drops the roast and colors; the table stays.
 
 ## Roadmap
 

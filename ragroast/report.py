@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import os
 import sys
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from .runner import Result
 
@@ -63,7 +63,86 @@ def verdict(results: Dict[str, Result], k: int) -> List[str]:
     return out
 
 
-def render(results: Dict[str, Result], dataset: str, n_docs: int, n_queries: int, k: int, params: str) -> str:
+_ROASTS = {
+    "dense_blowout": (
+        "\U0001f525 BM25 ran away with it — that vector database is an expensive way to lose.",
+        "\U0001f525 You provisioned a vector database to get lapped by a `for` loop from 1994.",
+    ),
+    "dense_loss": (
+        "\U0001f525 384 dimensions, still outscored by plain term frequency.",
+        "\U0001f525 All those embeddings and the keyword baseline still ate your lunch.",
+    ),
+    "dense_slim": (
+        "\U0001f525 Photo finish — and the 30-year-old baseline still edged it.",
+        "\U0001f525 So close to justifying the GPU bill. So very not-quite.",
+    ),
+    "tie": (
+        "\U0001f525 A dead heat — you paid for embeddings to break even.",
+        "\U0001f525 A tie means the vector DB is a lateral move with extra billing.",
+    ),
+    "dense_win": (
+        "✅ Respect — your embeddings earned their GPU; BM25 tips its hat.",
+        "✅ Fine: the embeddings actually pulled their weight this time.",
+    ),
+    "bm25_only": (
+        "\U0001f525 Only BM25 showed up — add `--dense minilm` and give it a real fight.",
+        "\U0001f525 BM25 is shadow-boxing. Bring embeddings so we can roast them properly.",
+    ),
+    "scored": (
+        "\U0001f525 Numbers are in — hope your pipeline clears a keyword baseline. Most don't.",
+        "\U0001f525 Nice run file. Now prove it actually beats BM25.",
+    ),
+}
+
+
+def _roast_bucket(results: Dict[str, Result]) -> Optional[str]:
+    bm = results.get("BM25 (baseline)")
+    de = results.get("Dense (MiniLM)")
+    if bm is not None and de is not None:
+        if bm.ndcg <= 0:
+            return "tie"
+        d = (de.ndcg - bm.ndcg) / bm.ndcg * 100.0
+        if d <= -15:
+            return "dense_blowout"
+        if d <= -5:
+            return "dense_loss"
+        if d < 0:
+            return "dense_slim"
+        if d == 0:
+            return "tie"
+        return "dense_win"
+    if bm is not None:
+        return "bm25_only"
+    if results:
+        return "scored"
+    return None
+
+
+def roast(results: Dict[str, Result], level: int = 1) -> Optional[str]:
+    """One spicy line keyed to the outcome. ``level``: 0 = off, 1 = mild, 2 = spicy.
+
+    Deterministic (chosen by the result, never at random, so it stays
+    reproducible) and purely decorative — it never touches the numbers, the
+    table, or the params footer. Numbers deadpan, commentary spicy.
+    """
+    if level <= 0:
+        return None
+    bucket = _roast_bucket(results)
+    if bucket is None:
+        return None
+    mild, spicy = _ROASTS[bucket]
+    return spicy if level >= 2 else mild
+
+
+def render(
+    results: Dict[str, Result],
+    dataset: str,
+    n_docs: int,
+    n_queries: int,
+    k: int,
+    params: str,
+    roast_level: int = 1,
+) -> str:
     color = _use_color()
     best_ndcg = max((r.ndcg for r in results.values()), default=0.0)
 
@@ -93,6 +172,9 @@ def render(results: Dict[str, Result], dataset: str, n_docs: int, n_queries: int
     lines.append(rule)
     for vl in verdict(results, k):
         lines.append("  " + vl)
+    roast_line = roast(results, roast_level)
+    if roast_line:
+        lines.append("  " + roast_line)
     lines.append("")
     lines.append(_paint("  " + params, "2", color))
     lines.append("")
