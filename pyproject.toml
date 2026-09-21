@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ragroast"
+version = "0.1.0"
+description = "Does your RAG actually beat BM25? A fair, reproducible retrieval showdown: BM25 vs dense vs hybrid."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Amol Srivastava", email = "workamolsrivastava@gmail.com" }]
+keywords = [
+    "rag", "retrieval", "bm25", "search", "information-retrieval",
+    "embeddings", "hybrid-search", "reranking", "evaluation", "ndcg",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Text Processing :: Indexing",
+]
+dependencies = []  # core is pure standard library
+
+[project.optional-dependencies]
+dense = ["sentence-transformers>=2.2.0"]
+dev = ["pytest>=7"]
+
+[project.urls]
+Homepage = "https://github.com/amolsrivastava21/ragroast"
+Issues = "https://github.com/amolsrivastava21/ragroast/issues"
+
+[project.scripts]
+ragroast = "ragroast.cli:main"
+
+[tool.setuptools]
+packages = ["ragroast"]
+
+[tool.setuptools.package-data]
+ragroast = ["_sample/*.jsonl", "_sample/*.json"]

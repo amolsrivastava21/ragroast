@@ -1,0 +1,13 @@
+{"qid": "q1", "docid": "d1", "rel": 2}
+{"qid": "q1", "docid": "d6", "rel": 1}
+{"qid": "q2", "docid": "d10", "rel": 2}
+{"qid": "q2", "docid": "d3", "rel": 1}
+{"qid": "q2", "docid": "d2", "rel": 1}
+{"qid": "q3", "docid": "d9", "rel": 2}
+{"qid": "q3", "docid": "d14", "rel": 1}
+{"qid": "q4", "docid": "d7", "rel": 2}
+{"qid": "q4", "docid": "d12", "rel": 1}
+{"qid": "q4", "docid": "d2", "rel": 1}
+{"qid": "q5", "docid": "d13", "rel": 2}
+{"qid": "q5", "docid": "d8", "rel": 1}
+{"qid": "q6", "docid": "d15", "rel": 2}

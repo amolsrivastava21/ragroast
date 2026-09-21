@@ -1,0 +1,6 @@
+{"_id": "q1", "text": "how does bm25 scoring work"}
+{"_id": "q2", "text": "combine keyword and vector search"}
+{"_id": "q3", "text": "measure ranking quality of search results"}
+{"_id": "q4", "text": "fast similarity search over embeddings"}
+{"_id": "q5", "text": "remove common words before indexing"}
+{"_id": "q6", "text": "split long documents for retrieval"}

@@ -1,0 +1,16 @@
+{"_id": "d1", "title": "Introduction to BM25", "text": "BM25 is a bag-of-words ranking function that scores documents by term frequency and inverse document frequency with document length normalization."}
+{"_id": "d2", "title": "Dense vector retrieval", "text": "Dense retrieval encodes queries and documents into embeddings and ranks candidates by cosine similarity in vector space."}
+{"_id": "d3", "title": "Reciprocal Rank Fusion", "text": "RRF combines several ranked lists by summing the reciprocal of each item's rank, which avoids the score normalization problem."}
+{"_id": "d4", "title": "Inverted index basics", "text": "An inverted index maps each term to the list of documents that contain it, enabling fast keyword lookup at query time."}
+{"_id": "d5", "title": "Cross-encoder reranking", "text": "A cross-encoder scores a query and a document jointly and is used to rerank a shortlist of candidates for higher precision."}
+{"_id": "d6", "title": "TF-IDF weighting", "text": "TF-IDF weights each term by how often it appears in a document against how rare it is across the whole corpus."}
+{"_id": "d7", "title": "Approximate nearest neighbor search", "text": "ANN indexes such as HNSW make vector similarity search fast enough to scale to millions of embeddings."}
+{"_id": "d8", "title": "Tokenization and analyzers", "text": "Analyzers split text into tokens, lowercase them, and drop stop words before the terms are indexed."}
+{"_id": "d9", "title": "Evaluating retrieval with nDCG", "text": "Normalized discounted cumulative gain measures ranking quality by rewarding relevant documents that appear near the top."}
+{"_id": "d10", "title": "Hybrid search", "text": "Hybrid search blends lexical BM25 scores with dense vector similarity to capture both exact terms and semantic meaning."}
+{"_id": "d11", "title": "Query expansion", "text": "Query expansion adds synonyms and related terms to a query in order to improve recall of relevant documents."}
+{"_id": "d12", "title": "Vector databases", "text": "A vector database stores embeddings and supports similarity search together with metadata filtering."}
+{"_id": "d13", "title": "Stop words", "text": "Stop words are very common words like the and is that are often removed because they carry little discriminating meaning."}
+{"_id": "d14", "title": "Learning to rank", "text": "Learning to rank trains a model on labeled query document pairs to order search results by relevance."}
+{"_id": "d15", "title": "Chunking documents for RAG", "text": "Chunking splits long documents into smaller passages so that retrieval returns focused and relevant context to the model."}
+{"_id": "d16", "title": "Caching search results", "text": "Caching frequent queries reduces latency and backend load by serving precomputed results."}
