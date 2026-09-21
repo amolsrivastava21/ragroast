@@ -9,19 +9,19 @@ dense retrieval actually beats a 30-year-old keyword baseline on *their own* dat
 ```
 ragroast · retrieval showdown on 'scifact'  (5183 docs · 300 queries · k=10)
 
-  method             nDCG@10   Recall@10     MRR      latency
-  ──────────────────────────────────────────────────────────
-  BM25 (baseline)      0.641      0.780      0.612      1.3 ms
-  Dense (MiniLM)       0.598      0.710      0.560      0.9 ms
-  Hybrid (RRF)         0.701      0.860      0.668      2.1 ms
-  ──────────────────────────────────────────────────────────
-  VERDICT  BM25 beats your dense retriever by +7.2% nDCG@10.  🔥
-           Hybrid (RRF) wins overall (+9.4% over BM25).
+  method                nDCG@10   Recall@10     MRR      latency
+  ──────────────────────────────────────────────────────────────
+  BM25 (baseline)         0.664       0.782   0.634      7.36 ms
+  Dense (MiniLM)          0.645       0.783   0.605     74.19 ms
+  Hybrid (RRF)            0.685       0.821   0.646     82.44 ms
+  ──────────────────────────────────────────────────────────────
+  VERDICT  BM25 beats your dense retriever by +2.9% nDCG@10.  🔥
+           Hybrid (RRF) wins overall (+3.2% over BM25).
 
-  method: Okapi BM25 (k1=1.5, b=0.75) · dense: all-MiniLM-L6-v2 · fusion: RRF (k=60)
+  method: Okapi BM25 (k1=1.5, b=0.75) · dense: all-MiniLM-L6-v2 · fusion: RRF (k=60) · metrics computed from scratch
 ```
 
-<sub>*(illustrative output — run `ragroast demo` for live numbers on the bundled set)*</sub>
+<sub>*(real run on the BEIR **scifact** test split — 5183 docs, 300 queries. Reproduce with `ragroast run` on its corpus/queries/qrels.)*</sub>
 
 ## Why
 
@@ -77,6 +77,16 @@ ragroast run \
   score-normalization-free way to combine ranked lists.
 - **Metrics** — nDCG@k, Recall@k, MRR, [from scratch](ragroast/metrics.py) and
   unit-tested against hand-computed values.
+
+## Why not just use BEIR / ranx / pytrec_eval?
+
+Use them — they're excellent, and if you're writing a paper you should. They're
+also a research workflow: TREC tooling, a metrics library you wire into a harness
+yourself, a notebook, a GPU to embed a corpus. `ragroast` is the five-minute
+version — one command, zero dependencies for the baseline, three retrievers already
+wired up, and an opinionated **verdict** instead of a dataframe. It's the check you
+run *before* the vector database ships, to find out whether you even need it. When
+you want publication-grade rigor, graduate to BEIR + `ir_measures`.
 
 ## The one rule: the fight has to be fair
 
