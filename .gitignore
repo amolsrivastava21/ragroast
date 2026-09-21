@@ -17,3 +17,6 @@ venv/
 
 # Local session notes (never published)
 HANDOFF.local.md
+
+# Local launch/blog drafts (not repo docs)
+ESSAY-DRAFT.md
