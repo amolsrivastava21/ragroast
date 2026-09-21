@@ -56,15 +56,36 @@ Once published: `pip install ragroast` → `ragroast demo`.
 
 ## Run it on your own data
 
-BEIR-compatible formats:
+Point it at a **directory** laid out BEIR-style (`corpus.jsonl`, `queries.jsonl`,
+and `qrels/test.tsv` or `qrels.jsonl`) — one path, no flags to remember:
 
 ```bash
-ragroast run \
-  --corpus corpus.jsonl \      # {"_id": "...", "title": "...", "text": "..."}
-  --queries queries.jsonl \    # {"_id": "...", "text": "..."}
-  --qrels qrels.jsonl \        # {"qid": "...", "docid": "...", "rel": 1}  (or BEIR .tsv)
-  --dense minilm --k 10
+ragroast run ./my-dataset/ --dense minilm --k 10
 ```
+
+…or pass the three files explicitly:
+
+```bash
+ragroast run --corpus corpus.jsonl --queries queries.jsonl --qrels qrels.jsonl --dense minilm
+```
+
+Formats (BEIR-compatible):
+
+- corpus  — `{"_id": "...", "title": "...", "text": "..."}`
+- queries — `{"_id": "...", "text": "..."}`
+- qrels   — `{"qid": "...", "docid": "...", "rel": 1}`  (or BEIR `.tsv`)
+
+### Already have a retrieval pipeline? Just score its output.
+
+No need to reimplement your retriever in ragroast — hand it a **run file** (your
+pipeline's ranked results) and it scores them against your qrels:
+
+```bash
+ragroast score --run my_run.trec --qrels qrels.jsonl --k 10
+```
+
+A run file is either TREC format (`qid Q0 docid rank score tag`) or JSONL
+(`{"qid": "...", "docids": ["d1", "d2", ...]}`, already ranked).
 
 ## How it works
 
@@ -108,10 +129,13 @@ A benchmark that rigs the baseline is worse than no benchmark. So:
 
 ## Roadmap
 
+- [x] `ragroast run ./dataset/` — auto-detect corpus/queries/qrels
+- [x] `ragroast score --run …` — score any pipeline's ranked output (TREC/JSONL)
 - [ ] `pip install ragroast` on PyPI
 - [ ] one-command BEIR dataset fetch (`ragroast bench scifact`)
-- [ ] cross-encoder rerank stage
+- [ ] folder / CSV ingestion (md · pdf · txt · csv → corpus)
 - [ ] LLM-as-judge to auto-generate qrels for unlabeled corpora
+- [ ] cross-encoder rerank stage
 - [ ] OpenAI / Cohere / Voyage embedding adapters (with $ cost column)
 - [ ] HTML report
 

@@ -89,3 +89,83 @@ def load_sample() -> Tuple[List[Doc], List[Query], Dict[str, Dict[str, int]], st
         load_qrels(os.path.join(base, "qrels.jsonl")),
         os.path.join(base, "vectors.json"),
     )
+
+
+def resolve_dataset_dir(path: str) -> Tuple[str, str, str]:
+    """Locate ``corpus`` / ``queries`` / ``qrels`` inside a BEIR-style directory.
+
+    Expects ``corpus.jsonl`` and ``queries.jsonl``; for qrels it tries, in order,
+    ``qrels/test.tsv``, ``qrels/test.jsonl``, ``qrels.tsv``, ``qrels.jsonl``.
+    Returns ``(corpus_path, queries_path, qrels_path)`` or raises ``SystemExit``
+    with a readable message.
+    """
+    corpus = os.path.join(path, "corpus.jsonl")
+    queries = os.path.join(path, "queries.jsonl")
+    missing = [os.path.basename(p) for p in (corpus, queries) if not os.path.exists(p)]
+    if missing:
+        raise SystemExit(f"{path!r} is not a BEIR-style dataset dir (missing {', '.join(missing)})")
+    qrels_candidates = [
+        os.path.join(path, "qrels", "test.tsv"),
+        os.path.join(path, "qrels", "test.jsonl"),
+        os.path.join(path, "qrels.tsv"),
+        os.path.join(path, "qrels.jsonl"),
+    ]
+    qrels = next((p for p in qrels_candidates if os.path.exists(p)), None)
+    if qrels is None:
+        raise SystemExit(
+            f"no qrels found in {path!r} "
+            "(looked for qrels/test.tsv, qrels/test.jsonl, qrels.tsv, qrels.jsonl)"
+        )
+    return corpus, queries, qrels
+
+
+def load_run(path: str) -> Dict[str, List[str]]:
+    """Load a retrieval run as ``{query_id: [doc_id, ...]}`` (ranked, best first).
+
+    Accepts either JSONL (``{"qid": "...", "docids": ["d1", "d2", ...]}``, already
+    ordered) or TREC format (``qid Q0 docid rank score tag``; also tolerates the
+    minimal ``qid docid score`` and ``qid docid`` variants).
+    """
+    if str(path).endswith((".jsonl", ".json")):
+        run: Dict[str, List[str]] = {}
+        for line in _lines(path):
+            o = json.loads(line)
+            qid = str(o.get("qid", o.get("query-id", o.get("query_id"))))
+            docids = o.get("docids") or o.get("doc_ids") or []
+            run[qid] = [str(d) for d in docids]
+        return run
+
+    # Whitespace-delimited (TREC and simpler variants): collect then order per qid.
+    collected: Dict[str, List[Tuple[float, float, str]]] = defaultdict(list)
+    for line in _lines(path):
+        parts = line.split()
+        if len(parts) >= 6:      # qid Q0 docid rank score tag
+            qid, docid, rank, score = parts[0], parts[2], parts[3], parts[4]
+        elif len(parts) in (4, 5):  # qid Q0 docid rank [score]
+            qid, docid, rank = parts[0], parts[2], parts[3]
+            score = parts[4] if len(parts) == 5 else "0"
+        elif len(parts) == 3:    # qid docid score
+            qid, docid, rank, score = parts[0], parts[1], "", parts[2]
+        elif len(parts) == 2:    # qid docid  (file order is the ranking)
+            qid, docid, rank, score = parts[0], parts[1], "", ""
+        else:
+            continue
+        pos = len(collected[qid])
+        try:
+            r = float(rank)
+        except ValueError:
+            r = float(pos)
+        try:
+            s = float(score)
+        except ValueError:
+            s = -float(pos)  # keep file order when no score
+        collected[qid].append((r, s, docid))
+
+    run = {}
+    for qid, rows in collected.items():
+        if any(r != rows[0][0] for r, _, _ in rows):
+            rows.sort(key=lambda t: t[0])        # explicit ranks → ascending
+        else:
+            rows.sort(key=lambda t: -t[1])       # else score descending (file order if none)
+        run[qid] = [d for _, _, d in rows]
+    return run

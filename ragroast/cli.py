@@ -2,14 +2,22 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from typing import Optional, Tuple
 
 from . import __version__
-from .data import load_corpus_jsonl, load_qrels, load_queries_jsonl, load_sample
+from .data import (
+    load_corpus_jsonl,
+    load_qrels,
+    load_queries_jsonl,
+    load_run,
+    load_sample,
+    resolve_dataset_dir,
+)
 from .embeddings import load_vectors, minilm_embedder
 from .report import render
-from .runner import run_showdown
+from .runner import run_showdown, score_runs
 
 _PARAMS = (
     "method: Okapi BM25 (k1=1.5, b=0.75) · dense: all-MiniLM-L6-v2 · "
@@ -46,16 +54,39 @@ def cmd_demo(args: argparse.Namespace) -> int:
 
 
 def cmd_run(args: argparse.Namespace) -> int:
-    docs = load_corpus_jsonl(args.corpus)
-    queries = load_queries_jsonl(args.queries)
-    qrels = load_qrels(args.qrels)
+    if args.path:
+        corpus_path, queries_path, qrels_path = resolve_dataset_dir(args.path)
+        dataset = os.path.basename(os.path.normpath(args.path)) or args.path
+    elif args.corpus and args.queries and args.qrels:
+        corpus_path, queries_path, qrels_path = args.corpus, args.queries, args.qrels
+        dataset = os.path.basename(args.corpus)
+    else:
+        raise SystemExit(
+            "give a dataset directory (e.g. `ragroast run ./data/`) "
+            "or all of --corpus / --queries / --qrels"
+        )
+    docs = load_corpus_jsonl(corpus_path)
+    queries = load_queries_jsonl(queries_path)
+    qrels = load_qrels(qrels_path)
     # No precomputed vectors for arbitrary corpora; embed on the fly if asked.
     _, embedder = _dense_setup(args.dense, None)
     results = run_showdown(
         docs, queries, qrels, k=args.k, embedder=embedder, rrf_k=args.rrf_k, k1=args.k1, b=args.b
     )
-    dataset = args.corpus.rsplit("/", 1)[-1]
     print(render(results, dataset, len(docs), _counted_queries(queries, qrels), args.k, _PARAMS))
+    return 0
+
+
+def cmd_score(args: argparse.Namespace) -> int:
+    qrels = load_qrels(args.qrels)
+    runs = {}
+    for run_path in args.run:
+        name = args.name if (args.name and len(args.run) == 1) else os.path.basename(run_path)
+        runs[name] = load_run(run_path)
+    results = score_runs(runs, qrels, k=args.k)
+    n_queries = next(iter(results.values())).n_queries if results else 0
+    params = f"metrics computed from scratch · nDCG@{args.k}, Recall@{args.k}, MRR · qrels: {os.path.basename(args.qrels)}"
+    print(render(results, "your run", 0, n_queries, args.k, params))
     return 0
 
 
@@ -72,16 +103,25 @@ def build_parser() -> argparse.ArgumentParser:
     d.add_argument("-k", "--k", type=int, default=10, help="cutoff k for nDCG/Recall (default 10)")
     d.set_defaults(func=cmd_demo)
 
-    r = sub.add_parser("run", help="run on your own corpus/queries/qrels")
-    r.add_argument("--corpus", required=True, help="corpus JSONL (BEIR format)")
-    r.add_argument("--queries", required=True, help="queries JSONL (BEIR format)")
-    r.add_argument("--qrels", required=True, help="qrels JSONL or BEIR TSV")
+    r = sub.add_parser("run", help="run on your own data (a dataset dir, or explicit files)")
+    r.add_argument("path", nargs="?", help="BEIR-style dataset dir (corpus.jsonl, queries.jsonl, qrels)")
+    r.add_argument("--corpus", help="corpus JSONL (BEIR format); omit if passing a dataset dir")
+    r.add_argument("--queries", help="queries JSONL (BEIR format)")
+    r.add_argument("--qrels", help="qrels JSONL or BEIR TSV")
     r.add_argument("--dense", default=None, help="'minilm' to include dense/hybrid (needs ragroast[dense])")
     r.add_argument("-k", "--k", type=int, default=10)
     r.add_argument("--rrf-k", type=int, default=60, dest="rrf_k")
     r.add_argument("--k1", type=float, default=1.5)
     r.add_argument("--b", type=float, default=0.75)
     r.set_defaults(func=cmd_run)
+
+    s = sub.add_parser("score", help="score an existing pipeline's run file against qrels")
+    s.add_argument("--run", action="append", required=True, metavar="RUN",
+                   help="run file (TREC or JSONL); repeat --run to compare several")
+    s.add_argument("--qrels", required=True, help="qrels JSONL or BEIR TSV")
+    s.add_argument("--name", default=None, help="label for a single run (defaults to the filename)")
+    s.add_argument("-k", "--k", type=int, default=10)
+    s.set_defaults(func=cmd_score)
     return p
 
 

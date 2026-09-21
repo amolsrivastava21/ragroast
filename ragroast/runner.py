@@ -131,3 +131,39 @@ def run_showdown(
         results["Hybrid (RRF)"] = _evaluate("Hybrid (RRF)", hybrid, queries, qrels, k, progress)
 
     return results
+
+
+def score_runs(
+    runs: Dict[str, Dict[str, List[str]]],
+    qrels: Dict[str, Dict[str, int]],
+    k: int = 10,
+) -> "OrderedDict[str, Result]":
+    """Score one or more pre-computed runs against qrels.
+
+    Each run is ``{query_id: [doc_id, ...ranked]}`` — e.g. the output of an
+    existing retrieval pipeline. No retrieval happens here; we only apply the
+    from-scratch metrics, so any pipeline can be scored without adopting
+    ragroast's retrievers. ``latency_ms`` is left at 0 (not measured here).
+    """
+    results: "OrderedDict[str, Result]" = OrderedDict()
+    for name, ranking in runs.items():
+        ndcgs: List[float] = []
+        recalls: List[float] = []
+        rrs: List[float] = []
+        for qid, rel in qrels.items():
+            if not rel:
+                continue
+            docids = ranking.get(qid, [])
+            ndcgs.append(ndcg_at_k(docids, rel, k))
+            recalls.append(recall_at_k(docids, rel, k))
+            rrs.append(reciprocal_rank(docids, rel))
+        results[name] = Result(
+            name=name,
+            ndcg=mean(ndcgs),
+            recall=mean(recalls),
+            mrr=mean(rrs),
+            latency_ms=0.0,
+            n_queries=len(ndcgs),
+            k=k,
+        )
+    return results
