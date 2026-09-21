@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import math
 import os
+import sys
 from typing import Callable, Dict, List, Optional, Sequence
 
 
@@ -30,10 +31,22 @@ def minilm_embedder(model_name: str = "sentence-transformers/all-MiniLM-L6-v2") 
             "    pip install 'ragroast[dense]'\n"
             "(then all-MiniLM-L6-v2 downloads once, ~90 MB)."
         )
+    if sys.stderr.isatty():
+        sys.stderr.write(f"  loading {model_name} (first run downloads ~90 MB) …\n")
+        sys.stderr.flush()
     model = SentenceTransformer(model_name)
 
     def embed(texts: Sequence[str]) -> List[List[float]]:
-        vecs = model.encode(list(texts), normalize_embeddings=True, convert_to_numpy=False)
+        # sentence-transformers ships its own batch progress bar; show it only for
+        # a real batch in an interactive terminal, so piped/captured output stays
+        # clean and stray single-item encodes don't stomp on the scoring line.
+        texts = list(texts)
+        vecs = model.encode(
+            texts,
+            normalize_embeddings=True,
+            convert_to_numpy=False,
+            show_progress_bar=sys.stderr.isatty() and len(texts) >= 16,
+        )
         return [[float(x) for x in v] for v in vecs]
 
     return embed
