@@ -1,5 +1,10 @@
 # ragroast 🔥
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org)
+[![core: pure stdlib](https://img.shields.io/badge/core-pure%20stdlib-orange.svg)](pyproject.toml)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+
 **Does your RAG actually beat BM25?**
 
 Everyone reaches for a vector database. Almost no one checks whether their fancy

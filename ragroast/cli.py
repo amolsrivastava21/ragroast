@@ -120,7 +120,7 @@ def build_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     p.add_argument("--version", action="version", version=f"ragroast {__version__}")
-    sub = p.add_subparsers(dest="command", required=True)
+    sub = p.add_subparsers(dest="command")
 
     d = sub.add_parser("demo", help="run the bundled showdown")
     d.add_argument("--dense", default=None, help="'minilm' to include dense/hybrid (needs ragroast[dense])")
@@ -156,7 +156,11 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Optional[list] = None) -> int:
-    args = build_parser().parse_args(argv if argv is not None else sys.argv[1:])
+    parser = build_parser()
+    args = parser.parse_args(argv if argv is not None else sys.argv[1:])
+    if not getattr(args, "func", None):  # bare `ragroast` -> show help, don't error
+        parser.print_help()
+        return 0
     return args.func(args)
 
 
